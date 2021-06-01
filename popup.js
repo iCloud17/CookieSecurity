@@ -1,49 +1,71 @@
 var localStore = {};
+const badCookies = ['nyt-us', 'nyt-geo']
 var currentCookieInfo = localStorage.getItem('currentCookieInfo');
 
 var port = chrome.extension.connect({
 	name: "currentCookieInfo"
 });
 
-port.onMessage.addListener(function(msg) {
-	if(msg.msg === undefined) {
-		console.log(msg.url, 'not in db!');
-		cookieinfo(msg.url);
-	} else {
-		var content = document.getElementById("mainContent");
-		content.outerHTML = msg.msg;
-		var btn = document.getElementsByClassName('blockBtn');
-		for(var i = 0; i < btn.length; i++) {
-			btn[i].onclick = function(event) {
-				//console.log(getComputedStyle(event.target).backgroundColor);
-				if(event.target.value === "0") {
-					event.target.value = "1";
-					event.target.style.backgroundColor = "red";
-					event.target.innerHTML = "BLOCKED";
-				} else {
-					event.target.value = "0";
-					event.target.style.backgroundColor = "#03A9F4";
-					event.target.innerHTML = "BLOCK";
-				}
-				localStore[url] = content.outerHTML;
-				port.postMessage(localStore);
-			};
-		}
+function deleteCookie(url, name) {
+	console.log('deleting cookie!', url, name);
+	try {
+		chrome.cookies.remove({
+			url: url,
+			name: name
+		});	
+	} catch (error) {
+		console.log(error);
 	}
-});
+}
+
+function queryDB() {
+	port.onMessage.addListener(function(msg) {
+		if(msg.msg === undefined) {
+			console.log(msg.url, 'not in db!');
+			cookieinfo(msg.url);
+		} else {
+			var content = document.getElementById("mainContent");
+			content.outerHTML = msg.msg;
+			var btn = document.getElementsByClassName('blockBtn');
+			for(var i = 0; i < btn.length; i++) {
+				var val = JSON.parse(btn[i].value);
+				if(val.blocked === 1) {
+					deleteCookie(msg.url, val.cookie.name);
+				}
+
+				btn[i].onclick = function(event) {
+					var value = JSON.parse(event.target.value);
+					// console.log(value);
+					if(value.blocked === 0) {
+						value.blocked = 1;
+						event.target.value = JSON.stringify(value);
+						event.target.style.backgroundColor = "red";
+						event.target.innerHTML = "BLOCKED";
+						deleteCookie(msg.url, value.cookie.name);
+					} else {
+						value.blocked = 0;
+						event.target.value = JSON.stringify(value);
+						event.target.style.backgroundColor = "#03A9F4";
+						event.target.innerHTML = "BLOCK";
+					}
+					localStore[msg.url] = content.outerHTML;
+					port.postMessage(localStore);
+				};
+			}
+		}
+	});
+}
+
+queryDB();
 
 function extractDomain(url) {
 	return url.replace(/.+\/\/|www.|\/.+/g, '');
 }
 
-// function deleteCookie() {
-
-// }
-
 function cookieinfo(url) {
 	// var domain = extractDomain(url);
 	// console.log('a.' + domain);
-	chrome.cookies.getAll({"domain": 'google.com'}, function (cookie) {
+	chrome.cookies.getAll({"url": url}, function (cookie) {
 		
 		console.log(cookie.length);
 		var content = document.getElementById("mainContent");
@@ -75,17 +97,24 @@ function cookieinfo(url) {
 			
 			var blockBtn = document.createElement('button');
 			blockBtn.className = 'blockBtn';
-			blockBtn.value = "0";
+			var val = {};
+			val['blocked'] = 0;
+			val['cookie'] = cookie[i];
+			blockBtn.value = JSON.stringify(val);
 			blockBtn.innerHTML = "BLOCK";
 			blockBtn.style.float = "right";
 			blockBtn.onclick = function(event) {
-				//console.log(getComputedStyle(event.target).backgroundColor);
-				if(event.target.value === "0") {
-					event.target.value = "1";
+				var value = JSON.parse(event.target.value);
+				// console.log('in cookie info', value);
+				if(value.blocked === 0) {
+					value.blocked = 1;
+					event.target.value = JSON.stringify(value);
 					event.target.style.backgroundColor = "red";
 					event.target.innerHTML = "BLOCKED";
+					deleteCookie(url, value.cookie.name);
 				} else {
-					event.target.value = "0";
+					value.blocked = 0;
+					event.target.value = JSON.stringify(value);
 					event.target.style.backgroundColor = "#03A9F4";
 					event.target.innerHTML = "BLOCK";
 				}
@@ -106,3 +135,5 @@ function cookieinfo(url) {
 chrome.tabs.query({"status": "complete", "windowId": chrome.windows.WINDOW_ID_CURRENT, "active": true}, function(tab) {
 	port.postMessage({url : tab[0].url});
 });
+
+window.onload = queryDB;
