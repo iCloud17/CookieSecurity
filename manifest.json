@@ -2,7 +2,7 @@
   "name" : "Cookie API Demo",
   "version" : "1",
   "description" : "This is demonstration of Cookie API",
-  "permissions": [ "cookies","<all_urls>","tabs"],
+  "permissions": [ "cookies","<all_urls>","tabs","storage"],
   "browser_action": {
     "default_icon": {
       "16": "/images/get_started16.png",
@@ -11,6 +11,9 @@
       "128": "/images/get_started128.png"
     },
     "default_popup":"popup.html"
+  },
+  "background": {
+    "scripts": ["background.js"]
   },
   "manifest_version": 2
 }
