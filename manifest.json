@@ -1,8 +1,11 @@
 {
-  "name" : "Cookie API Demo",
+  "name" : "Cookie Security",
   "version" : "1",
-  "description" : "This is demonstration of Cookie API",
-  "permissions": [ "cookies","<all_urls>","tabs","storage"],
+  "description" : "This is a project for Data Driven Security.",
+  "permissions": [ "cookies","<all_urls>","tabs","debugger","webRequest", "webRequestBlocking"],
+  "background": {
+    "scripts": ["background.js"]
+  },
   "browser_action": {
     "default_icon": {
       "16": "/images/get_started16.png",
@@ -10,10 +13,14 @@
       "48": "/images/get_started48.png",
       "128": "/images/get_started128.png"
     },
-    "default_popup":"popup.html"
+    "default_popup":"popup.html",
+    "default_title": "Cookie Security"
   },
-  "background": {
-    "scripts": ["background.js"]
-  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"]
+    }
+  ],
   "manifest_version": 2
 }
