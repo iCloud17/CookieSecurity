@@ -1,5 +1,6 @@
 var localStore = {};
-const badCookies = ['nyt-us', 'nyt-geo']
+const badCookies = ['nyt-us', 'nyt-geo'];
+const worseCookies = ['nyt-m', 'nyt-jkidd'];
 var currentCookieInfo = localStorage.getItem('currentCookieInfo');
 
 var port = chrome.extension.connect({
@@ -27,12 +28,17 @@ function queryDB() {
 			var content = document.getElementById("mainContent");
 			content.outerHTML = msg.msg;
 			var btn = document.getElementsByClassName('blockBtn');
+			var tiles = document.getElementsByClassName('tile');
 			for(var i = 0; i < btn.length; i++) {
 				var val = JSON.parse(btn[i].value);
 				if(val.blocked === 1) {
 					deleteCookie(msg.url, val.cookie.name);
 				}
-
+				if(badCookies.includes(val.cookie.name)) {
+					tiles[i].style.backgroundColor = "#ffb856";
+				} else if(worseCookies.includes(val.cookie.name)) {
+					tiles[i].style.backgroundColor = "#f96800";
+				}
 				btn[i].onclick = function(event) {
 					var value = JSON.parse(event.target.value);
 					// console.log(value);
@@ -121,6 +127,12 @@ function cookieinfo(url) {
 				localStore[url] = content.outerHTML;
 				port.postMessage(localStore);
 			};
+
+			if(badCookies.includes(cookie[i].name)) {
+				tile.style.backgroundColor = "#ffb856";
+			} else if(worseCookies.includes(cookie[i].name)) {
+				tile.style.backgroundColor = "#f96800";
+			}
 			tile.appendChild(blockBtn);
 
 			content.append(tile);
